@@ -1,0 +1,14 @@
+# Use uma imagem base com suporte a C++ e PThreads
+FROM gcc:latest
+
+# Cria um diretório para o código
+WORKDIR /app
+
+# Copia o código para o container
+COPY 4threads.cpp .
+
+# Compila o código com suporte a PThreads
+RUN g++ 4threads.cpp -o 4threads -pthread
+
+# Comando para executar o código
+CMD ["./4threads"]

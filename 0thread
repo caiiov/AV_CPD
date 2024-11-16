@@ -1,0 +1,47 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <chrono>
+#include <cstdlib>
+#include <ctime>
+
+int main() {
+    const int n = 150000000; // N�mero padr�o de elementos no vetor
+
+    auto inicio_total = std::chrono::high_resolution_clock::now(); // In�cio do tempo total
+
+    for (int i = 1; i <= 8; ++i) {
+        std::cout << "Preenchendo o vetor " << i << "...\n";
+
+        // Medir o tempo do preenchimento
+        auto inicio_preenchimento = std::chrono::high_resolution_clock::now();
+        std::vector<int> vetor(n);
+        std::srand(std::time(nullptr) + i); // Alterar a semente para cada preenchimento
+        for (int j = 0; j < n; ++j) {
+            vetor[j] = std::rand(); // Preencher com valores aleat�rios
+        }
+        auto fim_preenchimento = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> duracao_preenchimento = fim_preenchimento - inicio_preenchimento;
+
+        std::cout << "Vetor " << i << " preenchido em " << duracao_preenchimento.count() << " segundos\n";
+        std::cout << "Ordenando o vetor " << i << "...\n";
+
+        // Medir o tempo da ordena��o
+        auto inicio_ordenacao = std::chrono::high_resolution_clock::now();
+        std::sort(vetor.begin(), vetor.end());
+        auto fim_ordenacao = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> duracao_ordenacao = fim_ordenacao - inicio_ordenacao;
+
+        std::cout << "Vetor " << i << " ordenado em " << duracao_ordenacao.count() << " segundos\n\n";
+    }
+
+    auto fim_total = std::chrono::high_resolution_clock::now(); // Fim do tempo total
+    std::chrono::duration<double> duracao_total = fim_total - inicio_total;
+
+    std::cout << "Tempo total de execu��o: " << duracao_total.count() << " segundos\n";
+
+    return 0;
+}
+
+
+
