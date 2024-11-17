@@ -31,3 +31,5 @@ Um programa em C++ que:
 
 ## Observações
 - Os resultados são salvos no arquivo resultadoOpenMP.json após a execução.
+
+> No começo Deus fez o homem, e o homem acha que fez Deus, e no fim deus foi morto pelo homem, e o homem agora quer ser deus. 
