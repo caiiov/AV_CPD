@@ -5,6 +5,7 @@ FROM gcc:latest
 WORKDIR /app
 
 # Copia o código para o container
+COPY json.hpp .
 COPY 4threads.cpp .
 
 # Compila o código com suporte a PThreads
