@@ -1,3 +1,4 @@
+
 #include <mpi.h>
 #include <iostream>
 #include <vector>
@@ -5,7 +6,8 @@
 #include <chrono>
 #include <cstdlib>
 #include <ctime>
-#include <nlohmann/json.hpp> // Incluindo a biblioteca para JSON
+#include <fstream>
+#include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 
@@ -26,54 +28,49 @@ int main(int argc, char** argv) {
     std::vector<int> vetor(n);
     std::srand(std::time(nullptr) + rank); // Alterar a semente para cada processo
     for (int j = 0; j < n; ++j) {
-        vetor[j] = std::rand();
+        vetor[j] = std::rand() % 1000; // Valores aleatórios entre 0 e 999
     }
     auto fim_preenchimento = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> duracao_preenchimento = fim_preenchimento - inicio_preenchimento;
+    std::cout << "Processo " << rank << " terminou de preencher o vetor.\n";
 
-    std::cout << "Processo " << rank << " preenchido em " << duracao_preenchimento.count() << " segundos\n";
-    std::cout << "Processo " << rank << " ordenando o vetor...\n";
-
+    // Ordenando o vetor
     auto inicio_ordenacao = std::chrono::high_resolution_clock::now();
     std::sort(vetor.begin(), vetor.end());
     auto fim_ordenacao = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> duracao_ordenacao = fim_ordenacao - inicio_ordenacao;
+    std::cout << "Processo " << rank << " terminou de ordenar o vetor.\n";
 
-    std::cout << "Processo " << rank << " ordenado em " << duracao_ordenacao.count() << " segundos\n";
+    // Coletando os tempos locais de cada processo
+    double tempo_preenchimento = std::chrono::duration<double>(fim_preenchimento - inicio_preenchimento).count();
+    double tempo_ordenacao = std::chrono::duration<double>(fim_ordenacao - inicio_ordenacao).count();
 
-    // Enviar tempos para o processo mestre
-    double tempos[2] = {duracao_preenchimento.count(), duracao_ordenacao.count()};
+    // Processo 0 recebe os tempos e salva no JSON
     if (rank == 0) {
-        std::vector<double> tempos_preenchimento(world_size);
-        std::vector<double> tempos_ordenacao(world_size);
+        json resultados = json::array(); // Array JSON para armazenar os resultados
 
-        MPI_Gather(&tempos[0], 1, MPI_DOUBLE, tempos_preenchimento.data(), 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-        MPI_Gather(&tempos[1], 1, MPI_DOUBLE, tempos_ordenacao.data(), 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        // Adicionando o próprio resultado
+        resultados.push_back({{"processo", rank}, {"preenchimento", tempo_preenchimento}, {"ordenacao", tempo_ordenacao}});
 
-        // Criar o objeto JSON
-        json resultado_json;
-        for (int i = 0; i < world_size; ++i) {
-            json processo_json;
-            processo_json["processo"] = i;
-            processo_json["preenchimento"] = tempos_preenchimento[i];
-            processo_json["ordenacao"] = tempos_ordenacao[i];
-            resultado_json.push_back(processo_json);
+        // Recebendo resultados dos outros processos
+        for (int i = 1; i < world_size; ++i) {
+            double temp_preench, temp_ord;
+            MPI_Recv(&temp_preench, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(&temp_ord, 1, MPI_DOUBLE, i, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+            resultados.push_back({{"processo", i}, {"preenchimento", temp_preench}, {"ordenacao", temp_ord}});
         }
 
-        // Exibir o JSON resultante
-        std::cout << "\nResultado em formato JSON:\n" << resultado_json.dump(4) << std::endl;
-    } else {
-        MPI_Gather(&tempos[0], 1, MPI_DOUBLE, nullptr, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-        MPI_Gather(&tempos[1], 1, MPI_DOUBLE, nullptr, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    }
+        // Salvando o JSON em um arquivo
+        std::ofstream file("resultado.json");
+        file << resultados.dump(4); // Escrevendo com indentação
+        file.close();
 
-    auto fim_total = std::chrono::high_resolution_clock::now(); // Fim do tempo total
-    if (rank == 0) {
-        std::chrono::duration<double> duracao_total = fim_total - inicio_total;
-        std::cout << "\nTempo total de execução: " << duracao_total.count() << " segundos\n";
+        std::cout << "Resultados salvos em 'resultado.json'.\n";
+    } else {
+        // Enviando tempos para o processo 0
+        MPI_Send(&tempo_preenchimento, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+        MPI_Send(&tempo_ordenacao, 1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
     }
 
     MPI_Finalize();
     return 0;
 }
-

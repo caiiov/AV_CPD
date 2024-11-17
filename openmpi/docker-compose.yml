@@ -1,0 +1,22 @@
+version: '3.9'
+
+services:
+  container1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: main_code
+    networks:
+      - mpi_network
+
+  container2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: support_service
+    networks:
+      - mpi_network
+
+networks:
+  mpi_network:
+    driver: bridge
